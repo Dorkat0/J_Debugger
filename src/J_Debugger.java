@@ -7,9 +7,11 @@ import com.sun.jdi.event.*;
 import com.sun.jdi.request.*;
 
 import java.io.*;
+import java.sql.SQLOutput;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 
 
 public class J_Debugger {
@@ -77,25 +79,63 @@ public class J_Debugger {
             classPrepareRequest.addClassFilter("Test");
             classPrepareRequest.enable();
 
+            Scanner scanner = new Scanner(System.in);
 
             EventSet eventSet = null;
             while ((eventSet = vm.eventQueue().remove()) != null) {
                 for (Event event : eventSet) {
                     if (event instanceof ClassPrepareEvent) {
-                        System.out.println("1");
+                        System.out.println("Setting Breakpoints");
                         setBreakPoints(vm, (ClassPrepareEvent)event);
                     }
 
                     if (event instanceof BreakpointEvent) {
                         event.request().disable();
-                        System.out.println("2");
-                        displayVariables((BreakpointEvent) event);
-                        enableStepRequest(vm, (BreakpointEvent)event);
+                        BreakpointEvent ev = (BreakpointEvent) event;
+
+                        System.out.println("Breakpoint reached at line:" +  ev.location().lineNumber());
+
+                        boolean con = true;
+                        while (con) {
+                            System.out.println("what do you want to do?");
+                            switch (scanner.nextLine()) {
+                                case "p" -> {   // print Variables
+                                    displayVariables((BreakpointEvent) event);
+                                }
+                                case "n" ->   // run to next breakpoint
+                                        con = false;
+                                case "i" -> {   // step in
+                                    //enableStepRequest(vm, (BreakpointEvent)event);
+                                    if (ev.location().toString().contains("Test" + ":" + breakPointLines[breakPointLines.length - 1])) {
+                                        StepRequest stepRequest = vm.eventRequestManager().createStepRequest(ev.thread(), StepRequest.STEP_LINE, StepRequest.STEP_INTO);
+                                        stepRequest.addClassFilter("*Test");
+                                        stepRequest.addCountFilter(1);
+                                        stepRequest.enable();
+                                    }
+                                    con = false;
+                                }
+                                case "o" -> {   //step over
+                                    if (ev.location().toString().contains("Test" + ":" + breakPointLines[breakPointLines.length - 1])) {
+                                        StepRequest stepRequest = vm.eventRequestManager().createStepRequest(ev.thread(), StepRequest.STEP_LINE, StepRequest.STEP_OVER);
+                                        stepRequest.addClassFilter("*Test");
+                                        stepRequest.addCountFilter(1);
+                                        stepRequest.enable();
+                                    }
+                                    con = false;
+                                }
+                                default -> con = false;
+                            }
+                        }
                     }
 
                     if (event instanceof StepEvent) {
-                        System.out.println("3");
-                        displayVariables((StepEvent) event);
+                        System.out.println("StepEvent");
+                        //displayVariables((StepEvent) event);
+                        StepEvent se = (StepEvent)event;
+                        System.out.println("step halted in " + se.location().method().name() + " at ");
+                        System.out.println(se.location().lineNumber() + ", " + se.location().codeIndex());
+                        printVars(se.thread().frame(0));
+                        vm.eventRequestManager().deleteEventRequest(se.request());
                     }
                     vm.resume();
                 }
@@ -160,34 +200,30 @@ public class J_Debugger {
 
     public void setBreakPoints(VirtualMachine vm, ClassPrepareEvent event) throws AbsentInformationException {
         ClassType classType = (ClassType) event.referenceType();
-        //for(int lineNumber: new ArrayList<>(1,2,3) {
-        Location location = classType.locationsOfLine(4).get(0);
-        BreakpointRequest bpReq = vm.eventRequestManager().createBreakpointRequest(location);
-        bpReq.enable();
-        //}
+        for(int br: breakPointLines) {
+            Location location = classType.locationsOfLine(br).get(0);
+            BreakpointRequest bpReq = vm.eventRequestManager().createBreakpointRequest(location);
+            bpReq.enable();
+        }
     }
 
     public void displayVariables(LocatableEvent event) throws IncompatibleThreadStateException, AbsentInformationException {
         StackFrame stackFrame = event.thread().frame(0);
         if (stackFrame.location().toString().contains("Test")) {
             Map<LocalVariable, Value> visibleVariables = stackFrame.getValues(stackFrame.visibleVariables());
-            System.out.println("Variables at " + stackFrame.location().toString() + " > ");
-            Iterator var4 = visibleVariables.entrySet().iterator();
+            System.out.println("Variables at " + stackFrame.location().lineNumber() + " > ");
+            Iterator it = visibleVariables.entrySet().iterator();
 
-            while(var4.hasNext()) {
-                Map.Entry<LocalVariable, Value> entry = (Map.Entry)var4.next();
-                PrintStream var10000 = System.out;
-                String var10001 = ((LocalVariable)entry.getKey()).name();
-                var10000.println(var10001 + " = " + entry.getValue());
+            while(it.hasNext()) {
+                Map.Entry<LocalVariable, Value> entry = (Map.Entry)it.next();
+                System.out.println(entry.getKey().name() + " = " + entry.getValue());
             }
         }
     }
 
     public void enableStepRequest(VirtualMachine vm, BreakpointEvent event) {
-        String var10000 = event.location().toString();
-        String var10001 = "Test";
-        if (var10000.contains(var10001 + ":" + this.breakPointLines[this.breakPointLines.length - 1])) {
-            StepRequest stepRequest = vm.eventRequestManager().createStepRequest(event.thread(), -2, 2);
+        if(event.location().toString().contains("Test"+":"+breakPointLines[breakPointLines.length-1])) {
+            StepRequest stepRequest = vm.eventRequestManager().createStepRequest(event.thread(), StepRequest.STEP_LINE, StepRequest.STEP_OVER);
             stepRequest.enable();
         }
 
