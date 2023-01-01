@@ -1,4 +1,4 @@
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -9,9 +9,10 @@ public class Test {
         System.out.println("Hi Everyone, Welcome to " + firstText); //add a break point here
         String secondText = "Java Debug Interface"; //add a break point here and also stepping in here
         String text = "Tbdaklsa" + secondText;
-        List<String> moreText= new ArrayList<>();
-        moreText.add("TEst1");
-        moreText.add("Test2");
+        String[] moreText= new String[]{"Ani","Sam","Joe"};    //inline initialization  
+        System.out.println(moreText);
+        List<String> evenMoreText = new LinkedList<>(Arrays.asList("Test1", "Test2", "Test3"));
+        System.out.println(evenMoreText);
         System.out.println(text + nextMe);
     }
 

@@ -6,12 +6,14 @@ import com.sun.jdi.event.*;
 import com.sun.jdi.request.*;
 
 import java.io.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.*;
 
 
 public class J_Debugger {
 
-    private int[] breakPointLines = {7, 10, 12};
+    private int[] breakPointLines = {7, 10, 12, 15};
     private HashSet<String> currentlyActiveMethods = new HashSet<>();
 
     public static void main(String[] args) {
@@ -73,16 +75,17 @@ public class J_Debugger {
             classPrepareRequest.addClassFilter("Test");
             classPrepareRequest.enable();
 
-/*            MethodEntryRequest methodEntryRequest = vm.eventRequestManager().createMethodEntryRequest();
+            MethodEntryRequest methodEntryRequest = vm.eventRequestManager().createMethodEntryRequest();
             methodEntryRequest.addClassFilter("Test");
             methodEntryRequest.enable();
 
             MethodExitRequest methodExitRequest = vm.eventRequestManager().createMethodExitRequest();
             methodExitRequest.addClassFilter("Test");
-            methodExitRequest.enable();*/
+            methodExitRequest.enable();
 
             EventSet eventSet = null;
-            while ((eventSet = vm.eventQueue().remove()) != null) {
+            boolean continueWhile = true;
+            while ((eventSet = vm.eventQueue().remove()) != null && continueWhile) {
                 for (Event event : eventSet) {
                     if (event instanceof ClassPrepareEvent) {
                         System.out.println("Setting Breakpoints");
@@ -112,13 +115,14 @@ public class J_Debugger {
                         currentlyActiveMethods.remove(((MethodExitEvent) event).method().name());
                     }
 
+                    if (event instanceof VMDeathEvent) {
+                        continueWhile = false;
+                        break;
+                    }
                     vm.resume();
                 }
             }
 
-            mainThread.resume();
-            vm.resume();
-            vm.dispose();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -147,16 +151,22 @@ public class J_Debugger {
             System.out.println("Variables at " + stackFrame.location().toString() + " : ");
             Iterator it = visibleVariables.entrySet().iterator();
 
-            while(it.hasNext()) {
-                Map.Entry<LocalVariable, Value> entry = (Map.Entry)it.next();
-                System.out.println("   " + entry.getKey().name() + " = " + entry.getValue());
-                if (entry.getValue().equals("StringReverence") || entry.equals("IntegerValue")) {
-                    System.out.println("Not an String or int");
+            while (it.hasNext()) {
+                Map.Entry<LocalVariable, Value> entry = (Map.Entry) it.next();
+                if (entry.getValue() instanceof ArrayReference) {
+                    System.out.println("   " + entry.getKey().name() + " = ");
+                    for (Value v : ((ArrayReference) entry.getValue()).getValues()) {
+                        System.out.println("       " + v);
+                    }
+                } else if (entry.getValue() instanceof IntegerValue || entry.getValue() instanceof StringReference) {
+                    System.out.println("   " + entry.getKey().name() + " = " + entry.getValue());
+                } else {
+                    System.out.println("   " + entry.getKey().name());
                 }
-                //TODO
             }
         }
     }
+
 
     public void menu(VirtualMachine vm, LocatableEvent ev) throws IncompatibleThreadStateException, AbsentInformationException {
         Scanner scanner = new Scanner(System.in);
@@ -187,26 +197,5 @@ public class J_Debugger {
     }
 }
 
-/*    static void printVars(StackFrame frame) {
-        try {
-            for (LocalVariable v: frame.visibleVariables()) {
-                System.out.println(v.name() + ": " + v.type().name() + " = ");
-                printValue(frame.getValue(v));
-                System.out.println();
-            }
-        } catch (Exception e) { e.printStackTrace(); }
-    }
 
-    static void printValue(Value val) {
-        if (val instanceof IntegerValue) {
-            System.out.println(((IntegerValue)val).value() + " ");
-        } else if (val instanceof StringReference) {
-            System.out.println(((StringReference)val).value() + " ");
-        } else if (val instanceof ArrayReference) {
-            for (Value v: ((ArrayReference)val).getValues()) {
-                printValue(v);
-                System.out.println();
-            }
-        } //TODO else
-    }*/
 

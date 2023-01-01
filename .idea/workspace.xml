@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="c4efff9b-d3a4-4d8d-aa67-2950068ce525" name="Changes" comment="implemented first user interaction">
+    <list default="true" id="c4efff9b-d3a4-4d8d-aa67-2950068ce525" name="Changes" comment="debugger steps working">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/J_Debugger.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/J_Debugger.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Test.class" beforeDir="false" afterPath="$PROJECT_DIR$/src/Test.class" afterDir="false" />
@@ -122,7 +122,7 @@
       <workItem from="1671528028378" duration="442000" />
       <workItem from="1671608725595" duration="1793000" />
       <workItem from="1672495005809" duration="10961000" />
-      <workItem from="1672562243227" duration="4767000" />
+      <workItem from="1672562243227" duration="9585000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit">
       <created>1671527400972</created>
@@ -145,7 +145,14 @@
       <option name="project" value="LOCAL" />
       <updated>1672501053192</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="debugger steps working">
+      <created>1672567259549</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1672567259549</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -165,25 +172,21 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="initial commit" />
     <MESSAGE value="implemented first user interaction" />
-    <option name="LAST_COMMIT_MESSAGE" value="implemented first user interaction" />
+    <MESSAGE value="debugger steps working" />
+    <option name="LAST_COMMIT_MESSAGE" value="debugger steps working" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/J_Debugger.java</url>
-          <line>107</line>
-          <option name="timeStamp" value="37" />
+          <line>118</line>
+          <option name="timeStamp" value="56" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/J_Debugger.java</url>
-          <line>111</line>
-          <option name="timeStamp" value="38" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/src/J_Debugger.java</url>
-          <line>86</line>
-          <option name="timeStamp" value="53" />
+          <line>163</line>
+          <option name="timeStamp" value="60" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
