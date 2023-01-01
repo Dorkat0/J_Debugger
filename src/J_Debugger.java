@@ -2,21 +2,17 @@ import com.sun.jdi.*;
 import com.sun.jdi.connect.AttachingConnector;
 import com.sun.jdi.connect.Connector;
 import com.sun.jdi.connect.IllegalConnectorArgumentsException;
-import com.sun.jdi.connect.LaunchingConnector;
 import com.sun.jdi.event.*;
 import com.sun.jdi.request.*;
 
 import java.io.*;
-import java.sql.SQLOutput;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
 
 
 public class J_Debugger {
 
-    private int[] breakPointLines = {3, 5};
+    private int[] breakPointLines = {7, 10, 12};
+    private HashSet<String> currentlyActiveMethods = new HashSet<>();
 
     public static void main(String[] args) {
         J_Debugger debugger = new J_Debugger();
@@ -24,13 +20,11 @@ public class J_Debugger {
     }
 
     public void LaunchingConnector() {
-        System.out.println("Hello world!");
-
-        //attaching();
+        System.out.println("Debugger started!");
 
         directlyAttaching();
 
-        System.out.println("Done");
+        System.out.println("Debugger ended");
     }
 
 
@@ -79,7 +73,13 @@ public class J_Debugger {
             classPrepareRequest.addClassFilter("Test");
             classPrepareRequest.enable();
 
-            Scanner scanner = new Scanner(System.in);
+/*            MethodEntryRequest methodEntryRequest = vm.eventRequestManager().createMethodEntryRequest();
+            methodEntryRequest.addClassFilter("Test");
+            methodEntryRequest.enable();
+
+            MethodExitRequest methodExitRequest = vm.eventRequestManager().createMethodExitRequest();
+            methodExitRequest.addClassFilter("Test");
+            methodExitRequest.enable();*/
 
             EventSet eventSet = null;
             while ((eventSet = vm.eventQueue().remove()) != null) {
@@ -91,57 +91,30 @@ public class J_Debugger {
 
                     if (event instanceof BreakpointEvent) {
                         event.request().disable();
-                        BreakpointEvent ev = (BreakpointEvent) event;
-
-                        System.out.println("Breakpoint reached at line:" +  ev.location().lineNumber());
-
-                        boolean con = true;
-                        while (con) {
-                            System.out.println("what do you want to do?");
-                            switch (scanner.nextLine()) {
-                                case "p" -> {   // print Variables
-                                    displayVariables((BreakpointEvent) event);
-                                }
-                                case "n" ->   // run to next breakpoint
-                                        con = false;
-                                case "i" -> {   // step in
-                                    //enableStepRequest(vm, (BreakpointEvent)event);
-                                    if (ev.location().toString().contains("Test" + ":" + breakPointLines[breakPointLines.length - 1])) {
-                                        StepRequest stepRequest = vm.eventRequestManager().createStepRequest(ev.thread(), StepRequest.STEP_LINE, StepRequest.STEP_INTO);
-                                        stepRequest.addClassFilter("*Test");
-                                        stepRequest.addCountFilter(1);
-                                        stepRequest.enable();
-                                    }
-                                    con = false;
-                                }
-                                case "o" -> {   //step over
-                                    if (ev.location().toString().contains("Test" + ":" + breakPointLines[breakPointLines.length - 1])) {
-                                        StepRequest stepRequest = vm.eventRequestManager().createStepRequest(ev.thread(), StepRequest.STEP_LINE, StepRequest.STEP_OVER);
-                                        stepRequest.addClassFilter("*Test");
-                                        stepRequest.addCountFilter(1);
-                                        stepRequest.enable();
-                                    }
-                                    con = false;
-                                }
-                                default -> con = false;
-                            }
-                        }
+                        LocatableEvent ev = (LocatableEvent) event;
+                        System.out.println("Breakpoint reached in " + ev.location().method().name() + " at line:" +  ev.location().lineNumber());
+                        menu(vm, ev);
                     }
 
                     if (event instanceof StepEvent) {
-                        System.out.println("StepEvent");
-                        //displayVariables((StepEvent) event);
-                        StepEvent se = (StepEvent)event;
-                        System.out.println("step halted in " + se.location().method().name() + " at ");
-                        System.out.println(se.location().lineNumber() + ", " + se.location().codeIndex());
-                        printVars(se.thread().frame(0));
+                        LocatableEvent se = (LocatableEvent)event;
+                        System.out.print("step halted in " + se.location().method().name() + " at ");
+                        System.out.println(se.location().lineNumber());     //", " + se.location().codeIndex()  //actually not needed
                         vm.eventRequestManager().deleteEventRequest(se.request());
+                        menu(vm, se);
                     }
+
+                    if (event instanceof  MethodEntryEvent) {
+                        currentlyActiveMethods.add(((MethodEntryEvent) event).method().name());
+                    }
+
+                    if (event instanceof MethodExitEvent) {
+                        currentlyActiveMethods.remove(((MethodExitEvent) event).method().name());
+                    }
+
                     vm.resume();
                 }
             }
-
-
 
             mainThread.resume();
             vm.resume();
@@ -149,53 +122,6 @@ public class J_Debugger {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    static void attaching() {
-        AttachingConnector con = null;
-
-        for (Connector c: Bootstrap.virtualMachineManager().allConnectors()) {
-            if (c.name().equals("com.sun.jdi.SocketAttach")) {
-                con = (AttachingConnector) c; break;
-            }
-        }
-        Map<String, Connector.Argument> args = con.defaultArguments();
-        args.get("port").setValue("8000");
-
-
-        try {
-            VirtualMachine vm = con.attach(args);
-
-/*            Process proc = vm.process();
-            new Redirection(proc.getErrorStream(), System.err).start();
-            new Redirection(proc.getInputStream(), System.out).start();
-            //attaching();*/
-
-            List<ThreadReference> threads = vm.allThreads();
-            for (ThreadReference t : threads) {
-                if (t.name().equals("main")) {
-                    StackFrame frame = t.frames().get(0);
-                    printVars(frame);
-                    break;
-                }
-            }
-
-
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            /* error */
-        }
-    }
-
-    static void printVars(StackFrame frame) {
-        try {
-            for (LocalVariable v: frame.visibleVariables()) {
-                System.out.println(v.name() + ": " + v.type().name() + " = ");
-                printValue(frame.getValue(v));
-                System.out.println();
-            }
-        } catch (Exception e) { e.printStackTrace(); }
     }
 
     public void setBreakPoints(VirtualMachine vm, ClassPrepareEvent event) throws AbsentInformationException {
@@ -207,27 +133,70 @@ public class J_Debugger {
         }
     }
 
+    public void singleStep(VirtualMachine vm, LocatableEvent ev, int depth) {
+        StepRequest stepRequest = vm.eventRequestManager().createStepRequest(ev.thread(), StepRequest.STEP_LINE, depth);
+        stepRequest.addClassFilter("*Test");
+        stepRequest.addCountFilter(1);
+        stepRequest.enable();
+    }
+
     public void displayVariables(LocatableEvent event) throws IncompatibleThreadStateException, AbsentInformationException {
         StackFrame stackFrame = event.thread().frame(0);
         if (stackFrame.location().toString().contains("Test")) {
             Map<LocalVariable, Value> visibleVariables = stackFrame.getValues(stackFrame.visibleVariables());
-            System.out.println("Variables at " + stackFrame.location().lineNumber() + " > ");
+            System.out.println("Variables at " + stackFrame.location().toString() + " : ");
             Iterator it = visibleVariables.entrySet().iterator();
 
             while(it.hasNext()) {
                 Map.Entry<LocalVariable, Value> entry = (Map.Entry)it.next();
-                System.out.println(entry.getKey().name() + " = " + entry.getValue());
+                System.out.println("   " + entry.getKey().name() + " = " + entry.getValue());
+                if (entry.getValue().equals("StringReverence") || entry.equals("IntegerValue")) {
+                    System.out.println("Not an String or int");
+                }
+                //TODO
             }
         }
     }
 
-    public void enableStepRequest(VirtualMachine vm, BreakpointEvent event) {
-        if(event.location().toString().contains("Test"+":"+breakPointLines[breakPointLines.length-1])) {
-            StepRequest stepRequest = vm.eventRequestManager().createStepRequest(event.thread(), StepRequest.STEP_LINE, StepRequest.STEP_OVER);
-            stepRequest.enable();
-        }
+    public void menu(VirtualMachine vm, LocatableEvent ev) throws IncompatibleThreadStateException, AbsentInformationException {
+        Scanner scanner = new Scanner(System.in);
+        boolean con = true;
+        while (con) {
+            System.out.println("what do you want to do?");
 
+            switch (scanner.nextLine()) {
+                case "p" -> {   // print Variables
+                    displayVariables(ev);
+                }
+                case "n" ->   // run to next breakpoint
+                        con = false;
+                case "i" -> {   // step in
+                    singleStep(vm, ev, StepRequest.STEP_INTO);
+                    con = false;
+                }
+                case "o" -> {   //step over
+                    singleStep(vm, ev, StepRequest.STEP_OVER);
+                    con = false;
+                }
+                case "m" -> {
+                    System.out.println(currentlyActiveMethods);
+                }
+                default -> con = false;
+            }
+        }
     }
+}
+
+/*    static void printVars(StackFrame frame) {
+        try {
+            for (LocalVariable v: frame.visibleVariables()) {
+                System.out.println(v.name() + ": " + v.type().name() + " = ");
+                printValue(frame.getValue(v));
+                System.out.println();
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+    }
+
     static void printValue(Value val) {
         if (val instanceof IntegerValue) {
             System.out.println(((IntegerValue)val).value() + " ");
@@ -239,6 +208,5 @@ public class J_Debugger {
                 System.out.println();
             }
         } //TODO else
-    }
+    }*/
 
-}
