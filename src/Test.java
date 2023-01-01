@@ -11,8 +11,6 @@ public class Test {
         String text = "Tbdaklsa" + secondText;
         String[] moreText= new String[]{"Ani","Sam","Joe"};    //inline initialization  
         System.out.println(moreText);
-        List<String> evenMoreText = new LinkedList<>(Arrays.asList("Test1", "Test2", "Test3"));
-        System.out.println(evenMoreText);
         System.out.println(text + nextMe);
     }
 
